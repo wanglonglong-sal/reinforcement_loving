@@ -1,16 +1,12 @@
 import numpy as np
 import gymnasium as gym
-import os
-import time
 from gymnasium import spaces
 from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
-from src.figures_visualize import draw_learning_curve
+from src.viz.figures_visualize import draw_learning_curve
 from config.Config import CONFIG
-from src.utilities import clear_folder, get_path_variables
-from src.animation_visualize import animate_position_1d
-from src.run_context import RunContext
+from src.utility.utilities import clear_folder
 
 class LineWorld(gym.Env):
     def __init__(self):
@@ -74,17 +70,7 @@ class LineWorld(gym.Env):
             truncated = False 
         info = {}
 
-        return obs, reward, terminated, truncated, info   
-    
-    def render(self, delay=0.08, clear=True):
-        if clear:
-            os.system("cls" if os.name == "nt" else "clear")
-        cells = ["-"] * (self.max_pos - self.min_pos + 1) 
-        cells[self.max_pos] = "G"
-        cells[self.pos] = "♥"
-        print("".join(cells))
-
-        time.sleep(delay)
+        return obs, reward, terminated, truncated, info    
 
 def obs_to_state(obs, max_pos):
     return int(round(obs[0] * max_pos))
@@ -102,31 +88,18 @@ def train_episode_initilize(env):
     return obs, info, s, done, step_count    
 
 def evaluate_performance(env, Q):
+
     obs, info, s, done, eval_steps = train_episode_initilize(env)
-    positions = [env.pos]
     while not done:
         a = int(np.argmax(Q[s]))
         next_obs, reward, terminated, truncated, info = env.step(a)
         done = terminated or truncated
         s_next = obs_to_state(next_obs, env.max_pos)
         s = s_next
-        eval_steps += 1
-        positions.append(env.pos)
-        
-    return eval_steps, positions
+        eval_steps += 1    
+    return eval_steps
 
-def epsilon_greedy(epsilon, env, Q, s):
-    if np.random.rand() < epsilon:
-        # 随机选择一个动作
-        a = env.action_space.sample()
-    else:
-        # 贪心Q表
-        a = int(np.argmax(Q[s]))   
-
-    return a 
-
-
-def train_sarsa(env, rctx):
+def train_q_learning(env):
 
     # 计算状态空间
     n_states = env.max_pos - env.min_pos + 1
@@ -149,23 +122,23 @@ def train_sarsa(env, rctx):
     # 创建tensorBoard日志，位于runs/
     log_dir=CONFIG["paths"]["log_dir"]
     run_time = datetime.now().strftime("%Y%m%d%H%M%S")
-    log_dir = Path(log_dir) / f"{rctx.execute_stem}_{run_time}"
+    log_dir = Path(log_dir) / run_time
     writer = SummaryWriter(log_dir)
-    # 初始化动画相关设定
-    save_gif = CONFIG["animation"]["save_gif"]
-    save_gif_ep = CONFIG["animation"]["save_gif_ep"]
 
     # 进入训练，训练次数=episodes
     for ep in range(episodes):
         # 每轮训练初始化观测环境
         print("The episode >>>>>>>>> ", ep)
         obs, info, s, done, step_count = train_episode_initilize(env)
-        # 选择一个动作
-        a = epsilon_greedy(epsilon, env, Q, s)    
 
         # 开始执行知道抵达终点或任务中断
         while not done:
-            # env.render()
+            if np.random.rand() < epsilon:
+                # 随机选择一个动作
+                a = env.action_space.sample()
+            else:
+                # 贪心Q表
+                a = int(np.argmax(Q[s]))
             # 执行后得到反馈
             next_obs, reward, terminated, truncated, info = env.step(a)
             # 将观测空间转回状态位置
@@ -173,57 +146,31 @@ def train_sarsa(env, rctx):
             # 是否抵达终点或被打断
             done = terminated or truncated
             # 更新Q表 ★★★★★★
-            if done:
-                # 当状态抵达终点时，仅进行基础赋值
-                td_target = reward
-                a_next = 0
-            else:
-                # 当状态非终点时，计算包含下一状态Q值
-                a_next = epsilon_greedy(epsilon, env, Q, s_next)
-                td_target = reward + gamma * Q[s_next, a_next]
-            Q[s, a] = Q[s, a] + alpha * (td_target - Q[s, a])
+            Q[s, a] = Q[s, a] + alpha * (reward + gamma * np.max(Q[s_next]) - Q[s, a])
             # print("count, s, a, Q[s, a]", step_count, s, a, Q[s, a], s_next)
             # 状态推进
             s = s_next
-            a = a_next
             # 步数累计
             step_count += 1
             if (done): print("This episode is completed.")
         # 随机概率衰减
         if epsilon > epsilon_min:
             epsilon = epsilon * epsilon_decay            
-        # 将每轮ep步数统计到数组    
+        # 将每轮步数统计到数组    
         episode_steps.append(step_count)
-        # 将每轮ep步数加入tensorBoard
+        # 将每轮步数加入tensorBoard
         writer.add_scalar("Episode/Steps", step_count, ep)
-        # 将每轮ep随机率加入tensorBoard
+        # 将每轮随机率加入tensorBoard
         writer.add_scalar("Episode/Epsilon", epsilon, ep)
         # 评估学习效果，不学习不更新Q表
-        eval_steps, positions = evaluate_performance(env, Q)
-        # 将每轮ep学习效果加入tensorBoard
+        eval_steps = evaluate_performance(env, Q)
         writer.add_scalar("Eval/Steps", eval_steps, ep)
-        if save_gif and ep % save_gif_ep == 0: 
-            # ani_path = Path(CONFIG["paths"]["ani_dir"])
-            run_time = datetime.now().strftime("%Y%m%d%H%M%S")
-            ani_path = log_dir / f"{rctx.execute_stem}_{ep}_{run_time}.gif"
-            ani = animate_position_1d(positions, env.max_pos, ani_path)
     # 画学习率折线图    
     # draw_learning_curve(episode_steps)
     # 关闭tensorBoard文件写入
     writer.close()    
 
 if __name__ == "__main__":
-
-    # 初始化相关路径变量
-    project_root, execute_filename, execute_stem = get_path_variables()
-    rctx = RunContext(
-        project_root = project_root,
-        execute_file = execute_filename,
-        execute_stem = execute_stem    
-    )
-    # 初始化环境对象
     env = LineWorld()
-    # 开始强化学习训练
-    train_sarsa(env, rctx)
-
+    train_q_learning(env)
     print("done")
