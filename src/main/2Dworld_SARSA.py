@@ -12,30 +12,39 @@ from src.utility.utilities import clear_folder, get_path_variables
 from src.ani.animation_visualize import animate_position_2d, animate_position_2d_img
 from src.data.run_context import RunContext, RunRewards
 
+
 class MatrixWorld(gym.Env):
     def __init__(self):
         print("MatrixWorld __int__ called")
-        # 定义世界空间大小
+
+        # Define the environment size
         self.width = CONFIG["environment"]["width"]
         self.height = CONFIG["environment"]["height"]
-        # 定义世界空间最小坐标
+
+        # Define the minimum coordinate of the environment
         self.min_x = 0
         self.min_y = 0
         self.min_pos = [self.min_x, self.min_y]
-        # 定义世界空间最大坐标
+
+        # Define the maximum coordinate of the environment
         self.max_x = self.width - 1
         self.max_y = self.height - 1
-        self.max_pos = [self.max_x, self.max_y]    
-        # 智能体在世界中的位置状态信息
+        self.max_pos = [self.max_x, self.max_y]
+
+        # Agent position/state in the environment
         self.pos = self.min_pos
-        # 动作空间：两个动作 0:up / 1:down / 2:left / 3:right
+
+        # Action space: 4 actions 0: up / 1: down / 2: left / 3: right
         self.action_space = spaces.Discrete(4)
-        # 观测空间：采用多重离散方式
+
+        # Observation space: use multi-discrete space
         self.observation_space = spaces.MultiDiscrete([self.width, self.height])
-        # 定义训练步数约束
+
+        # Define step constraints
         self.min_step = CONFIG["environment"]["min_steps"]
         self.max_step = CONFIG["environment"]["max_steps"]
-        # 初始化奖励
+
+        # Reward configuration (injected later)
         self.rrwds = None
 
     def set_rewards(self, rrwds: RunRewards):
@@ -45,159 +54,192 @@ class MatrixWorld(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        # 一局开始：把智能体放回起点
+
+        # At the start of an episode: reset the agent to the start position
         self.pos = self.min_pos.copy()
-        # 将初始化位置转换到观测空间
+
+        # Convert initial position into observation space format
         obs = np.array(self.pos, dtype=np.int64)
-        # 初始化训练步数累计值
+
+        # Reset step counter for the episode
         self.steps = 0
-        # 额外信息反馈出口，非Agent相关学习信息，可用于调试
+
+        # Additional info (not used by the agent), useful for debugging
         info = {}
-        
+
         return obs, info
 
-    def step(self, action): #0:up / 1:down / 2:left / 3:right
-        # 取出 x, y 现有坐标
+    def step(self, action):  # 0: up / 1: down / 2: left / 3: right
+        # Extract current (x, y)
         x, y = self.pos
         old_x = x
         old_y = y
-        # 如果向上，y + 1
-        if (action == 0):
+
+        # If action is up, y + 1
+        if action == 0:
             y += 1
-        # 如果向下，y - 1
-        elif (action == 1):
+        # If action is down, y - 1
+        elif action == 1:
             y -= 1
-        # 如果左，x - 1
-        elif (action == 2):
+        # If action is left, x - 1
+        elif action == 2:
             x -= 1
-        # 如果向右，x + 1
-        elif (action == 3):
+        # If action is right, x + 1
+        elif action == 3:
             x += 1
-        # 边界裁剪，如果Y当前位置超出0或4，拉回到0-4空间内
+
+        # Boundary clamp for y
         y = int(np.clip(y, self.min_y, self.max_y))
-        # 边界裁剪，如果X当前位置超出0或4，拉回到0-4空间内
+        # Boundary clamp for x
         x = int(np.clip(x, self.min_x, self.max_x))
-        # 最新坐标位置传回
+
+        # Update agent position
         self.pos = [x, y]
-        # 撞墙判断
+
+        # Detect wall hit (no movement after clamping)
         hit_wall = False
         if x == old_x and y == old_y:
             hit_wall = True
-        # 抵达终点时标记任务结束，最大化奖励
+
+        # If reaching the goal: terminate and grant goal reward
         if self.pos == self.max_pos:
             reward = self.rrwds.max_pos_reward
             terminated = True
-        # 未抵达中间时标记任务继续，惩罚    
+        # Otherwise: continue with step penalty (and optional wall penalty)
         else:
             reward = self.rrwds.step_reward
             terminated = False
             if hit_wall and self.rrwds.hit_wall_enable:
                 reward += self.rrwds.hit_wall_reward
-        # 将位置信息转换到观测空间
+
+        # Convert position into observation format
         obs = np.array(self.pos, dtype=np.int64)
-        # 当步数远超预期时，中断训练
-        self.steps += 1 
+
+        # Truncate if the episode exceeds max steps
+        self.steps += 1
         if self.steps >= self.max_step:
-            truncated = True 
+            truncated = True
         else:
-            truncated = False 
+            truncated = False
+
         info = {}
 
-        return obs, reward, terminated, truncated, info   
-    
+        return obs, reward, terminated, truncated, info
+
     def render(self, delay=0.08, clear=True):
         if clear:
             os.system("cls" if os.name == "nt" else "clear")
-        cells = ["-"] * (self.max_pos - self.min_pos + 1) 
+        cells = ["-"] * (self.max_pos - self.min_pos + 1)
         cells[self.max_pos] = "G"
         cells[self.pos] = "♥"
         print("".join(cells))
 
         time.sleep(delay)
 
+
 def obs_to_state(obs, width):
     x, y = obs
     return y * width + x
 
+
 def train_episode_initilize(env):
-    # 每轮训练初始化观测环境
+    # Reset environment at the beginning of each episode
     obs, info = env.reset()
-    # 每轮训练初始化状态
+
+    # Convert observation to a discrete state index
     s = obs_to_state(obs, env.width)
-    # 每轮训练初始化结束判断
+
+    # Episode termination flag
     done = False
-    # 每轮训练初始化步数统计
+
+    # Step counter within the episode
     step_count = 0
 
-    return obs, info, s, done, step_count    
+    return obs, info, s, done, step_count
+
 
 def evaluate_performance(env, Q):
-    # 每轮训练环境与变量初始化
+    # Initialize environment and variables for evaluation
     obs, info, s, done, eval_steps = train_episode_initilize(env)
-    # 更新positions记录
+
+    # Record positions
     x, y = obs
     positions = []
     positions.append((int(x), int(y)))
-    # 更新actions记录
+
+    # Record actions
     actions = []
+
     while not done:
-        # 取得最优状态对应动作
+        # Select the greedy action
         a = int(np.argmax(Q[s]))
         actions.append(a)
-        # 执行动作获得反馈
+
+        # Step in the environment
         next_obs, reward, terminated, truncated, info = env.step(a)
-        # 判断是否中止或结束
+
+        # Check termination/truncation
         done = terminated or truncated
-        # 最新状态转换
+
+        # Convert next observation to next state index
         s_next = obs_to_state(next_obs, env.width)
-        # 状态推进
+
+        # Move forward
         s = s_next
         obs = next_obs
-        # 步数累计
+
+        # Count steps
         eval_steps += 1
-        # 下一步坐标存入positions
+
+        # Store the next position
         x, y = next_obs
         positions.append((int(x), int(y)))
-        
+
     return eval_steps, positions, actions
+
 
 def epsilon_greedy(epsilon, env, Q, s):
     if np.random.rand() < epsilon:
-        # 随机选择一个动作
+        # Sample a random action
         a = env.action_space.sample()
     else:
-        # 贪心Q表
-        a = int(np.argmax(Q[s]))   
+        # Greedy action from Q-table
+        a = int(np.argmax(Q[s]))
 
-    return a 
+    return a
 
 
 def train_sarsa(env, rctx):
-
-    # 计算状态空间
+    # Compute state space size
     n_states = env.width * env.height
-    # 计算动作空间
+
+    # Compute action space size
     n_actions = env.action_space.n
-    # 创建q表 (24,4)
+
+    # Create Q-table (n_states, n_actions)
     Q = np.zeros((n_states, n_actions), dtype=np.float32)
-    # 初始化训练次数
+
+    # Training episodes
     episodes = CONFIG["training"]["episodes"]
-    # 初始化学习率 alpha
+
+    # Learning rate alpha
     alpha = CONFIG["algorithm"]["alpha"]
-    # 初始化折扣因子 gamma，表示未来奖励这算在现在值多少
+
+    # Discount factor gamma (how much future rewards are worth now)
     gamma = CONFIG["algorithm"]["gamma"]
-    # 初始化随机因子相关参数
-    epsilon = CONFIG["exploration"]["epsilon_start"]    
+
+    # Epsilon-greedy exploration parameters
+    epsilon = CONFIG["exploration"]["epsilon_start"]
     epsilon_decay = CONFIG["exploration"]["epsilon_decay"]
-    epsilon_min = CONFIG["exploration"]["epsilon_min"]        
-    # 学习效果统计
-    # episode_steps = []
-    # 创建tensorBoard日志，位于runs/
-    log_dir=CONFIG["paths"]["log_dir"]
+    epsilon_min = CONFIG["exploration"]["epsilon_min"]
+
+    # TensorBoard log directory (under runs/)
+    log_dir = CONFIG["paths"]["log_dir"]
     run_time = datetime.now().strftime("%Y%m%d%H%M%S")
     log_dir = Path(log_dir) / f"{rctx.execute_stem}_{run_time}"
     writer = SummaryWriter(log_dir)
-    # 初始化动画相关设定
+
+    # Animation settings
     save_gif = CONFIG["animation"]["save_gif"]
     save_gif_ep = CONFIG["animation"]["save_gif_ep"]
     save_gif_ep_start = CONFIG["animation"]["save_git_ep_start"]
@@ -205,90 +247,107 @@ def train_sarsa(env, rctx):
     des_img_dir = CONFIG["animation"]["des_img_dir"]
     end_img_path = CONFIG["animation"]["end_img_path"]
     ending_time = CONFIG["animation"]["ending_time"]
-    # 初始化rewards相关设定
+
+    # Reward settings
     max_pos_reward = CONFIG["rewards"]["max_pos_reward"]
     step_reward = CONFIG["rewards"]["step_reward"]
     hit_wall_enable = CONFIG["rewards"]["hit_wall_enable"]
     hit_wall_reward = CONFIG["rewards"]["hit_wall_reward"]
+
     rrwds = RunRewards(
-        max_pos_reward = max_pos_reward,
-        step_reward = step_reward,
-        hit_wall_enable = hit_wall_enable,
-        hit_wall_reward = hit_wall_reward
+        max_pos_reward=max_pos_reward,
+        step_reward=step_reward,
+        hit_wall_enable=hit_wall_enable,
+        hit_wall_reward=hit_wall_reward
     )
     env.set_rewards(rrwds)
-    # 进入训练，训练次数=episodes
+
+    # Training loop
     for ep in range(episodes):
-        # 每轮训练初始化观测环境
+        # Initialize environment for each episode
         print("The episode >>>>>>>>> ", ep)
         obs, info, s, done, step_count = train_episode_initilize(env)
-        # 选择一个动作
-        a = epsilon_greedy(epsilon, env, Q, s)    
 
-        # 开始执行直到抵达终点或任务中断
+        # Select the first action
+        a = epsilon_greedy(epsilon, env, Q, s)
+
+        # Rollout until termination or truncation
         while not done:
             # env.render()
-            # 执行后得到反馈
+
+            # Step environment
             next_obs, reward, terminated, truncated, info = env.step(a)
-            # 将观测空间转回状态位置
+
+            # Convert observation to next state
             s_next = obs_to_state(next_obs, env.width)
-            # 是否抵达终点或被打断
+
+            # Check if episode ends
             done = terminated or truncated
-            # 更新Q表 ★★★★★★
+
+            # SARSA update
             if done:
-                # 当状态抵达终点时，仅进行基础赋值
+                # If terminal, target is just the immediate reward
                 td_target = reward
                 a_next = 0
             else:
-                # 当状态非终点时，计算包含下一状态Q值
+                # Otherwise, bootstrap with next state-action value
                 a_next = epsilon_greedy(epsilon, env, Q, s_next)
                 td_target = reward + gamma * Q[s_next, a_next]
+
             Q[s, a] = Q[s, a] + alpha * (td_target - Q[s, a])
-            # print("count, s, a, Q[s, a]", step_count, s, a, Q[s, a], s_next)
-            # 状态推进
+
+            # Advance state and action
             s = s_next
             a = a_next
-            # 步数累计
-            step_count += 1
-            if (done): print("This episode is completed.")
 
-        # 随机概率衰减
+            # Count steps
+            step_count += 1
+            if done:
+                print("This episode is completed.")
+
+        # Epsilon decay
         if epsilon > epsilon_min:
-            epsilon = epsilon * epsilon_decay            
-        # 将每轮ep步数统计到数组    
-        # episode_steps.append(step_count)
-        # 将每轮ep步数加入tensorBoard
+            epsilon = epsilon * epsilon_decay
+
+        # Log training stats
         writer.add_scalar("Episode/Steps", step_count, ep)
-        # 将每轮ep随机率加入tensorBoard
         writer.add_scalar("Episode/Epsilon", epsilon, ep)
-        # 评估学习效果，不学习不更新Q表
+
+        # Evaluate policy (no learning / no Q update)
         eval_steps, positions, actions = evaluate_performance(env, Q)
-        # 将每轮ep学习效果加入tensorBoard
         writer.add_scalar("Eval/Steps", eval_steps, ep)
-        # 满足条件触发动画制作
-        if save_gif and ep >= save_gif_ep_start and ep % save_gif_ep == 0: 
+
+        # Generate animation if conditions are met
+        if save_gif and ep >= save_gif_ep_start and ep % save_gif_ep == 0:
             run_time = datetime.now().strftime("%Y%m%d%H%M%S")
             ani_path = log_dir / f"{rctx.execute_stem}_{ep}_{run_time}.gif"
-            # ani = animate_position_2d(env, positions, actions, ani_path)  # 无定制化动画
-            ani = animate_position_2d_img(env, positions, actions, ani_path, agent_img_dir, des_img_dir, end_img_path, terminated, ending_time) # 定制化动画版本
+            # ani = animate_position_2d(env, positions, actions, ani_path)  # Non-custom animation
+            ani = animate_position_2d_img(
+                env, positions, actions, ani_path,
+                agent_img_dir, des_img_dir, end_img_path,
+                terminated, ending_time
+            )  # Custom animation version
 
-    # 画学习率折线图    
+    # Plot learning curve (if enabled)
     # draw_learning_curve(episode_steps)
-    # 关闭tensorBoard文件写入
-    writer.close()    
+
+    # Close TensorBoard writer
+    writer.close()
+
 
 if __name__ == "__main__":
-
-    # 初始化相关路径变量
+    # Initialize common path variables
     project_root, execute_filename, execute_stem = get_path_variables()
     rctx = RunContext(
-        project_root = project_root,
-        execute_file = execute_filename,
-        execute_stem = execute_stem    
+        project_root=project_root,
+        execute_file=execute_filename,
+        execute_stem=execute_stem
     )
-    # 初始化环境对象
+
+    # Initialize environment
     env = MatrixWorld()
-    # 开始强化学习训练
+
+    # Start reinforcement learning training
     train_sarsa(env, rctx)
 
     print("done")

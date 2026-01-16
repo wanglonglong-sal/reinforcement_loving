@@ -1,41 +1,39 @@
 CONFIG = {
-    "training":{
-        "episodes":100  # 训练轮数 
+    "training": {
+        "episodes": 100  # Number of training episodes
     },
-    "algorithm":{
-        "alpha" : 0.1,  # 学习率
-        "gamma" : 0.99  # 未来折扣因子
+    "algorithm": {
+        "alpha": 0.1,   # Learning rate
+        "gamma": 0.99   # Discount factor for future rewards
     },
-    "exploration":{
-        "epsilon_start":0.3,    # 初始随机率
-        "epsilon_decay":0.9,    # 衰减率
-        "epsilon_min":0.01      # 最小随机率
-
+    "exploration": {
+        "epsilon_start": 0.3,  # Initial exploration rate (epsilon)
+        "epsilon_decay": 0.9,  # Epsilon decay rate
+        "epsilon_min": 0.01    # Minimum exploration rate
     },
-    "environment":{
-        "width":10,       # 2D空间宽度 
-        "height":5,      # 2D空间高度
-        "min_steps":1,   # 最大步数
-        "max_steps":1000 # 最大步数
+    "environment": {
+        "width": 10,        # Width of the 2D environment
+        "height": 5,        # Height of the 2D environment
+        "min_steps": 1,     # Minimum number of steps per episode
+        "max_steps": 1000   # Maximum number of steps per episode
     },
-    "paths":{
-        "log_dir":"runs",
-        "ani_dir":"anis"
+    "paths": {
+        "log_dir": "runs",  # Directory for TensorBoard logs
+        "ani_dir": "anis"  # Directory for saved animations
     },
-    "animation":{
-        "save_gif":True,         # 是否保存动画
-        "save_git_ep_start":90, # 保存动画起始轮次
-        "save_gif_ep":10,       # 保存动画轮次间隔 
-        "agent_img_dir":"imgs\\G.gif",  # Agent图片地址
-        "des_img_dir":"imgs\\T.gif",    # 终点图片地址    
-        "end_img_path":"imgs\\Ending.gif", # 胜利画面地址   
-        "ending_time":10  # 胜利画面持续时长  
-
+    "animation": {
+        "save_gif": True,             # Whether to save animation as GIF
+        "save_git_ep_start": 90,      # Episode index to start saving GIFs
+        "save_gif_ep": 10,            # Interval (episodes) between saved GIFs
+        "agent_img_dir": "imgs\\G.gif",       # Path to agent sprite GIF
+        "des_img_dir": "imgs\\T.gif",         # Path to target sprite GIF
+        "end_img_path": "imgs\\Ending.gif",   # Path to victory animation GIF
+        "ending_time": 10              # Duration of victory animation (frames)
     },
-    "rewards":{
-        "max_pos_reward":1,
-        "step_reward":-0.01,
-        "hit_wall_enable":True,
-        "hit_wall_reward":-0.5
+    "rewards": {
+        "max_pos_reward": 1,           # Reward for reaching the target position
+        "step_reward": -0.01,          # Step penalty per action
+        "hit_wall_enable": True,       # Enable wall collision penalty
+        "hit_wall_reward": -0.5        # Penalty for hitting a wall
     }
 }

@@ -6,22 +6,22 @@ from PIL import Image
 import numpy as np
 
 ACTION_NAME = {
-    0:"UP",
-    1:"DOWN",
-    2:"LEFT",
-    3:"RIGHT"
+    0: "UP",
+    1: "DOWN",
+    2: "LEFT",
+    3: "RIGHT"
 }
 
 ACTION_ARROW = {
-    0:"^",
-    1:"v",
-    2:"<",
-    3:">",
-    9:"",
+    0: "^",
+    1: "v",
+    2: "<",
+    3: ">",
+    9: "",
 }
 
 def animate_position_1d(positions, max_pos, gif_path):
-    # 初始化画布
+    # Initialize the canvas
     fig, ax = plt.subplots()
 
     ax.set_xlim(-0.5, max_pos + 0.5)
@@ -29,9 +29,11 @@ def animate_position_1d(positions, max_pos, gif_path):
     ax.set_yticks([])
     ax.set_xticks(range(max_pos + 1))
     ax.set_title("LineWorld rollout")
-    # 设置终点位置
+
+    # Set the target (goal) position
     ax.scatter([max_pos], [0], marker="*", s=250)
-    # 设置物体/智能体
+
+    # Set the agent marker
     agent_dot, = ax.plot([positions[0]], [0], marker="o", markersize=14)
 
     def update(frame_idx):
@@ -43,7 +45,7 @@ def animate_position_1d(positions, max_pos, gif_path):
         fig,
         update,
         frames=len(positions),
-        interval = 150,
+        interval=150,
         blit=False,
         repeat=False
     )
@@ -52,34 +54,44 @@ def animate_position_1d(positions, max_pos, gif_path):
     ani.save(gif_path, writer="pillow")
     return ani
 
+
 def animate_position_2d(env, positions, actions, gif_path):
-    # 初始化画布
+    # Initialize the canvas
     fig, ax = plt.subplots()
 
     ax.set_xlim(0, env.width)
     ax.set_ylim(0, env.height)
-    # 刻度
+
+    # Grid ticks
     ax.set_xticks(range(env.width + 1))
     ax.set_yticks(range(env.height + 1))
-    # 隐藏坐标轴数字，只保留格子
+
+    # Hide axis labels and keep only the grid
     ax.set_xticklabels([])
     ax.set_yticklabels([])
-    # 打开网格
+
+    # Enable grid
     ax.grid(True)
-    # 方格等长
+
+    # Keep square cells
     ax.set_aspect('equal')
-    # 图形表头
+
+    # Title
     ax.set_title(f"2D {env.width}*{env.height} Matrix rollout")
-    # 设置终点位置
+
+    # Set the target (goal) position
     max_x, max_y = env.max_pos
     ax.scatter(max_x + 0.5, max_y + 0.5, marker="*", s=250)
-    # 设置物体/智能体显示
+
+    # Set the agent marker
     x, y = positions[0]
     agent_dot, = ax.plot(x + 0.5, y + 0.5, marker="o", markersize=14)
-    # 设置物体动作
+
+    # Set the action indicator (arrow)
     arrow = ACTION_ARROW.get(actions[1], "?")
     agent_action, = ax.plot(x + 0.5, y + 0.5, marker=arrow, markersize=10)
-    # 计步器
+
+    # Step counter text
     step_test = ax.text(
         0.02, 0.98, "Step: 0",
         transform=ax.transAxes,
@@ -87,10 +99,11 @@ def animate_position_2d(env, positions, actions, gif_path):
     )
 
     def update(frame_idx):
-        # 更新物体位置显示
+        # Update the agent position
         x, y = positions[frame_idx]
         agent_dot.set_data([x + 0.5], [y + 0.5])
-        # 更新动作显示
+
+        # Update the action indicator
         if frame_idx == 0:
             a = 9
         else:
@@ -98,7 +111,8 @@ def animate_position_2d(env, positions, actions, gif_path):
         arrow = ACTION_ARROW.get(a, "?")
         agent_action.set_data([x + 0.5], [y + 0.5])
         agent_action.set_marker(arrow)
-        # 更新步数显示
+
+        # Update the step counter
         step_test.set_text(f"Step: {frame_idx}")
 
         return agent_dot, step_test
@@ -107,7 +121,7 @@ def animate_position_2d(env, positions, actions, gif_path):
         fig,
         update,
         frames=len(positions),
-        interval = 500,
+        interval=500,
         blit=False,
         repeat=False
     )
@@ -116,25 +130,33 @@ def animate_position_2d(env, positions, actions, gif_path):
     ani.save(gif_path, writer="pillow")
     return ani
 
+
 def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, destination_img_path, ending_img_path, terminated, ending_time):
-    # 初始化画布
+    # Initialize the canvas
     fig, ax = plt.subplots()
-    # 宽，高
+
+    # Set width and height
     ax.set_xlim(0, env.width)
     ax.set_ylim(0, env.height)
-    # 刻度
+
+    # Grid ticks
     ax.set_xticks(range(env.width + 1))
     ax.set_yticks(range(env.height + 1))
-    # 隐藏坐标轴数字，只保留格子
+
+    # Hide axis labels and keep only the grid
     ax.set_xticklabels([])
     ax.set_yticklabels([])
-    # 打开网格
+
+    # Enable grid
     ax.grid(True)
-    # 方格等长
+
+    # Keep square cells
     ax.set_aspect('equal')
-    # 图形表头
+
+    # Title
     ax.set_title(f"2D {env.width}*{env.height} Matrix rollout")
-    # 设置物体/智能体显示
+
+    # Set the agent sprite (GIF)
     x, y = positions[0]
     agent_frames = load_gif_frames(agent_img_path)
     imagebox = OffsetImage(agent_frames[0], zoom=0.05)
@@ -144,7 +166,8 @@ def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, d
         frameon=False
     )
     ax.add_artist(agent_avatar)
-    # 设置终点位置
+
+    # Set the target (goal) sprite (GIF)
     max_x, max_y = env.max_pos
     destination_frames = load_gif_frames(destination_img_path)
     des_imagebox = OffsetImage(destination_frames[0], zoom=0.05)
@@ -154,20 +177,23 @@ def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, d
         frameon=False
     )
     ax.add_artist(des_avatar)
-    # 设置胜利结束动画显示
+
+    # Set the victory/ending animation sprite (GIF)
     ending_frames = load_gif_frames(ending_img_path)
     end_imagebox = OffsetImage(ending_frames[0], zoom=0.4)
     end_avatar = AnnotationBbox(
         end_imagebox,
-        (max_x/2, max_y/2),
+        (max_x / 2, max_y / 2),
         frameon=False
-    )    
+    )
     ax.add_artist(end_avatar)
     end_avatar.set_visible(False)
-    # 设置物体动作
+
+    # Set the action indicator (arrow)
     arrow = ACTION_ARROW.get(actions[0], "?")
     agent_action, = ax.plot(x + 0.7, y + 0.7, marker=arrow, markersize=10)
-    # 计步器
+
+    # Step counter text
     step_test = ax.text(
         0.02, 0.98, "Step: 0",
         transform=ax.transAxes,
@@ -176,14 +202,15 @@ def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, d
 
     moving_time = len(positions)
 
-    def update(frame_idx): 
+    def update(frame_idx):
         if frame_idx < moving_time:
-            # 更新物体位置显示
+            # Update the agent position and sprite frame
             x, y = positions[frame_idx]
             gif_idx = frame_idx % len(agent_frames)
-            agent_avatar.xybox = (x + 0.5, y +0.5)
+            agent_avatar.xybox = (x + 0.5, y + 0.5)
             agent_avatar.offsetbox.set_data(agent_frames[gif_idx])
-            # 更新动作显示
+
+            # Update the action indicator
             if frame_idx == 0:
                 a = 9
             else:
@@ -191,15 +218,20 @@ def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, d
             arrow = ACTION_ARROW.get(a, "?")
             agent_action.set_data([x + 0.7], [y + 0.7])
             agent_action.set_marker(arrow)
-            # 更新步数显示
+
+            # Update the step counter
             step_test.set_text(f"Step: {frame_idx}")
-            # 终点gif跳变更新
+
+            # Update the target (goal) GIF frame
             des_gif_idx = frame_idx % len(destination_frames)
             des_avatar.offsetbox.set_data(destination_frames[des_gif_idx])
-        elif frame_idx >= moving_time and terminated == True:
+
+        elif frame_idx >= moving_time and terminated is True:
+            # Show ending animation after termination
             agent_avatar.set_visible(False)
             des_avatar.set_visible(False)
             end_avatar.set_visible(True)
+
             end_gif_idx = frame_idx % len(ending_frames)
             end_avatar.offsetbox.set_data(ending_frames[end_gif_idx])
 
@@ -209,7 +241,7 @@ def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, d
         fig,
         update,
         frames=moving_time + ending_time,
-        interval = 500,
+        interval=500,
         blit=False,
         repeat=False
     )
@@ -217,6 +249,7 @@ def animate_position_2d_img(env, positions, actions, gif_path, agent_img_path, d
     # plt.show()
     ani.save(gif_path, writer="pillow")
     return ani
+
 
 def load_gif_frames(gif_path):
     img = Image.open(gif_path)
