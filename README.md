@@ -1,11 +1,10 @@
 Python: 3.9 (local)
 The conda environment in local: conda activate metaDrive_rl
-Install deps: pip install -r requirements.txt
 
-- run python command
+Install deps: pip install -r requirements.txt
+- run python command：
 python -m src.main.2Dworld_SARSA
 ![2Dworld_SARSA_90_20260116120443](https://github.com/user-attachments/assets/fd906d1b-5eea-4b16-9796-6f73235d066d)
-
 
 python -m src.main.lineworld
 python -m src.main.lineworld_SARSA
