@@ -21,7 +21,9 @@ Run python program
 
 Run tensorBoard
 - tensorboard --logdir runs
-- http:127.0.0.1:10060
+- [http:127.0.0.1:6006](http://localhost:6006)
+<img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/8a0b87ee-4c67-42f0-9212-c2b3bfcc95b2" />
+<img width="1920" height="911" alt="image" src="https://github.com/user-attachments/assets/2ec18a76-bbf2-4dfa-97e8-c32a8ef3a3a2" />
 
 Supervise gpu performance
 - nvidia-smi -l 1
