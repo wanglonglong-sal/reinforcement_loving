@@ -37,5 +37,6 @@ Supervise gpu performance
 Comments:
 -----------------------------------------------------------------------------------------------------
 The animation results saved at runs/xxx_log/xxxx.gif
+
 ![2Dworld_DQN_ran_dual_1820_20260118203356](https://github.com/user-attachments/assets/f32aab57-7d18-431e-b444-81bd6d34dc51)
 
