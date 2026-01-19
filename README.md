@@ -17,7 +17,6 @@ Rebuild working environment by env_rl.yml
 
 
 Run python program
-- python -m src.main.2Dworld_DQN_ran
 - python -m src.main.2Dworld_DQN
 
 Run tensorBoard

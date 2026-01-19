@@ -80,6 +80,7 @@ def train_dqn_ran(env, rctx, q_net, target_net, replay_buffer, optimizer, device
     train_mode = CONFIG["training"]["train_mode"]
     # Initialize checkpoint path for resuming training
     load_resume_file_path = CONFIG["training"]["load_resume_file_path"]
+    pt_save_enabled = CONFIG["training"]["pt_save_enabled"]
     # Initialize learning rate alpha
     alpha = CONFIG["algorithm"]["alpha"]
     # Initialize discount factor gamma (how much future rewards are worth now)
@@ -236,7 +237,7 @@ def train_dqn_ran(env, rctx, q_net, target_net, replay_buffer, optimizer, device
             writer.add_scalar("Eval/Steps", eval_steps, ep)
             writer.add_scalar("Eval/Success", eval_terminated, ep)
             # Save intermediate checkpoints
-            if ep % (eval_performance_fre * 2) == 0:
+            if pt_save_enabled and ep % (eval_performance_fre * 2) == 0:
                 run_time = datetime.now().strftime("%Y%m%d%H%M%S")
                 ckp_path = Path(ckp_dir) / f"{rctx.execute_stem}_{ep}_{run_time}.pt"
                 save_dqn_ckpt(ckp_path, q_net, target_net, optimizer, ep, epsilon, global_step)

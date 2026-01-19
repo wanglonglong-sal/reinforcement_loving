@@ -1,1 +1,3 @@
 src/__pycache__/*
+runs/
+ckps/2D*.*

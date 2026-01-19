@@ -4,7 +4,8 @@ CONFIG = {
         "train_record_fre":1000,      # Training data logging frequency, based on global steps
         "eval_performance_fre": 20,  # Performance evaluation frequency, based on episode count
         "train_mode":0,               # 0: training from scratch; 1: resume training under the same observation environment; 2: resume training under a different observation environment
-        "load_resume_file_path":"ckps\\best.pt"  # Path to previously saved parameters to load when train mode is 1 or 2
+        "load_resume_file_path":"ckps\\best.pt",  # Path to previously saved parameters to load when train mode is 1 or 2
+        "pt_save_enabled":False       # enable the function of save pt file      
     },
     "algorithm":{
         "alpha" : 0.1,   # Learning rate
@@ -20,8 +21,8 @@ CONFIG = {
 
     },
     "environment":{
-        "width":10,       # Width of the 2D space 
-        "height":10,      # Height of the 2D space
+        "width":5,       # Width of the 2D space 
+        "height":5,      # Height of the 2D space
         "min_steps":1,    # Minimum number of steps
         "max_steps":500  # Maximum number of steps
     },
