@@ -9,7 +9,9 @@ class RunContext:
 
 @dataclass(frozen=True)
 class RunRewards:
-    max_pos_reward: float
+    goal_pos_reward: float
     step_reward: float
     hit_wall_enable: bool
     hit_wall_reward: float
+    repeat_position_enable: bool
+    repeat_position_reward: float

@@ -1,39 +1,51 @@
 CONFIG = {
-    "training": {
-        "episodes": 100  # Number of training episodes
+    "training":{
+        "episodes":1000,              # Number of training episodes 
+        "train_record_fre":1000,      # Training data logging frequency, based on global steps
+        "eval_performance_fre": 20,  # Performance evaluation frequency, based on episode count
+        "train_mode":0,               # 0: training from scratch; 1: resume training under the same observation environment; 2: resume training under a different observation environment
+        "load_resume_file_path":"ckps\\best.pt"  # Path to previously saved parameters to load when train mode is 1 or 2
     },
-    "algorithm": {
-        "alpha": 0.1,   # Learning rate
-        "gamma": 0.99   # Discount factor for future rewards
+    "algorithm":{
+        "alpha" : 0.1,   # Learning rate
+        "gamma" : 0.99,  # Discount factor for future rewards
+        "batch_size": 32,                   # Batch size for samples - used in DQN   
+        "lr": 1e-3,                         # Neural network learning rate - DQN
+        "target_update_freq": 200           # Target network parameter update frequency - DQN
     },
-    "exploration": {
-        "epsilon_start": 0.3,  # Initial exploration rate (epsilon)
-        "epsilon_decay": 0.9,  # Epsilon decay rate
-        "epsilon_min": 0.01    # Minimum exploration rate
+    "exploration":{
+        "epsilon_start":0.3,    # Initial exploration rate
+        "epsilon_decay":0.9,    # Decay rate
+        "epsilon_min":0.01      # Minimum exploration rate
+
     },
-    "environment": {
-        "width": 10,        # Width of the 2D environment
-        "height": 5,        # Height of the 2D environment
-        "min_steps": 1,     # Minimum number of steps per episode
-        "max_steps": 1000   # Maximum number of steps per episode
+    "environment":{
+        "width":10,       # Width of the 2D space 
+        "height":10,      # Height of the 2D space
+        "min_steps":1,    # Minimum number of steps
+        "max_steps":500  # Maximum number of steps
     },
-    "paths": {
-        "log_dir": "runs",  # Directory for TensorBoard logs
-        "ani_dir": "anis"  # Directory for saved animations
+    "paths":{
+        "log_dir":"runs",    # Log directory
+        "ckp_dir":"ckps",    # Checkpoint directory
+        "ani_dir":"anis"     # Animation directory - not used
     },
-    "animation": {
-        "save_gif": True,             # Whether to save animation as GIF
-        "save_git_ep_start": 90,      # Episode index to start saving GIFs
-        "save_gif_ep": 10,            # Interval (episodes) between saved GIFs
-        "agent_img_dir": "imgs\\G.gif",       # Path to agent sprite GIF
-        "des_img_dir": "imgs\\T.gif",         # Path to target sprite GIF
-        "end_img_path": "imgs\\Ending.gif",   # Path to victory animation GIF
-        "ending_time": 10              # Duration of victory animation (frames)
+    "animation":{
+        "save_gif":True,                # Whether to save animation
+        "save_git_ep_start":800,        # Starting episode for saving animations
+        "save_gif_ep":45,               # Episode interval for saving animations 
+        "agent_img_dir":"imgs\\G.gif",  # Agent image path
+        "des_img_dir":"imgs\\T.gif",    # Target image path    
+        "end_img_path":"imgs\\Ending.gif", # Victory screen image path   
+        "ending_time":10                # Duration of the victory screen  
+
     },
-    "rewards": {
-        "max_pos_reward": 1,           # Reward for reaching the target position
-        "step_reward": -0.01,          # Step penalty per action
-        "hit_wall_enable": True,       # Enable wall collision penalty
-        "hit_wall_reward": -0.5        # Penalty for hitting a wall
+    "rewards":{
+        "goal_pos_reward":10,       # Reward for reaching the goal
+        "step_reward":-0.1,       # Penalty per step
+        "hit_wall_enable":True,    # Enable wall-collision penalty
+        "hit_wall_reward":-1,    # Wall-collision penalty
+        "repeat_position_enable":True,  # Enable oscillation (back-and-forth) penalty
+        "repeat_position_reward":-0.5   # Oscillation (back-and-forth) penalty
     }
 }
